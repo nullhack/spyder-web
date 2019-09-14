@@ -16,7 +16,7 @@ RUN set -ex &&\
     apt install -y --no-install-recommends python3 python3-pip python3-dev python3-setuptools &&\
     # installing python dependencies
     pip3 install -U pip &&\
-    pip3 install selenium ipython fastapi uvicorn &&\
+    pip3 install selenium ipython fastapi uvicorn email-validator &&\
     # removing unecessary files
     apt  purge --auto-remove -y build-essential &&\
     apt autoremove -y --purge &&\
