@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 
 from selenium import webdriver    
 from selenium.webdriver.firefox.options import Options
@@ -20,13 +20,14 @@ app = FastAPI()
 
 async def p():
     while True:
-        await asyncio.sleep(2)
+        await asyncio.sleep(10)
         print('RUNNING STILL')
 asyncio.create_task(p())
 
 @app.get("/")
 async def read_root():
-    return {"Hello": "World"}
+    response = RedirectResponse(url='/docs')
+    return response
 
 @app.get("/load")
 async def load(name: str):
