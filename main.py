@@ -1,59 +1,60 @@
 from fastapi import FastAPI
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 
 from selenium import webdriver    
 from selenium.webdriver.firefox.options import Options
 import hashlib
-import json
 from enum import Enum
-
 import time
-import asyncio
+
+from redis_collections import Dict
+from redis import StrictRedis
+
+conn = StrictRedis()
+page_dict = Dict(redis=conn, writeback=True, key='SPYDERWEB__PAGE_DICT')
 
 class FilterType(str, Enum):
     filter_param = "param"
     filter_regex = "regex"
 
-browser_dict = {}
+class BrowserType(str, Enum):
+    browser_firefox = "firefox"
+    browser_chrome = "chrome"
 
-app = FastAPI()
-
-async def p():
-    while True:
-        await asyncio.sleep(10)
-        print('RUNNING STILL')
-asyncio.create_task(p())
+app = FastAPI(title='SpyderWeb', version='0.3.0')
 
 @app.get("/")
 async def read_root():
     response = RedirectResponse(url='/docs')
     return response
 
-@app.get("/load")
-async def load(name: str):
-    return {'load':'code'}
-
-@app.get("/add_page")
-async def add_page(url: str, expiry: int = 3600):
+@app.post("/page")
+async def post_page(url: str, expiry: int = 3600, browser_type: BrowserType = 'firefox', force_update: bool = False):
     h = hashlib.sha256(url.encode('utf-8')).hexdigest()[:16]
-    if not h in browser_dict:
-        options = Options()
-        options.headless = True
-        new_browser = webdriver.Firefox(options=options, executable_path=r'/usr/bin/geckodriver')
-        new_browser.get(url)
-        browser_dict[h] = {'url':url, 'expiry':expiry, 'browser':new_browser}
+    if not h in page_dict or force_update:
+        page_dict[h] = {
+            'hash':h,
+            'url':url, 
+            'browser_type':browser_type,
+            'expiry':expiry,
+            'worker':None,
+            'creation_time':int(time.time()),
+            'last_update':None,
+            'last_health_check':None
+            }
+    page_dict.sync()
     return h
 
 @app.get("/list_pages")
 async def list_pages():
-    return {k:browser_dict[k]['url'] for k in browser_dict.keys()}
+    return page_dict
 
-@app.get("/{page_id}/get", response_class=HTMLResponse)
-async def add_filter(page_id: str):
-    return browser_dict[page_id]['browser'].page_source
+@app.get("/{page_id}/get")
+async def get_page(page_id: str):
+    return page_dict.get(page_id,{})
 
-@app.get("/{page_id}/add_filter")
-async def add_filter(page_id: int, filter_str: str, filter_type: FilterType = 'param', frequency: int = None, expiry: int = None):
+@app.post("/{page_id}/filter")
+async def post_filter(page_id: int, filter_str: str, filter_type: FilterType = 'param', frequency: int = None, expiry: int = None):
     return {'add_filter': settings}
 
 @app.get("/{page_id}/list_filters")
@@ -70,5 +71,8 @@ async def delete_data(page_id: int, filter_id: int, start_time: int, end_time: i
 
 @app.get("/health")
 async def health():
-    return {'health': 'status'}
+    try:
+        return {'healthy':conn.ping()}
+    except:
+        return {'healthy':False}
 
