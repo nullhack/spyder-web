@@ -5,6 +5,7 @@ from enum import Enum
 
 class BrowserType(str, Enum):
     browser_firefox = "firefox"
+    browser_edge = "edge"
     browser_chrome = "chrome"
 
 
@@ -28,10 +29,11 @@ def get_chrome_browser(url:str = None, window_size:tuple = (1920,1080), user_age
     if window_size: browser.set_window_size(*window_size)
     return browser
 
-def get_browser(url:str = None, window_size:tuple = (1920,1080), browser_type:BrowserType = 'firefox', user_agent:str = None):
+def get_browser(url:str = None, browser_type:BrowserType = 'firefox', window_size:tuple = (1920,1080)):
     browser = None
-    if browser_type == 'firefox': browser = get_firefox_browser(url, window_size, user_agent)
-    elif browser_type == 'chrome': browser = get_chrome_browser(url, window_size, user_agent)
+    if browser_type == 'firefox': browser = get_firefox_browser(url, window_size, user_agent['firefox'])
+    elif browser_type == 'chrome': browser = get_chrome_browser(url, window_size, user_agent['chrome'])
+    elif browser_type == 'edge': browser = get_chrome_browser(url, window_size, user_agent['edge'])
     return browser
 
 user_agent = {
